@@ -49,41 +49,55 @@ namespace ZWaveFun
 
             _mre.WaitOne();
 
-            // var node = _nodeList.FirstOrDefault(x => x.Product == "45609 On/Off Relay Switch");
-            var node = _nodeList.FirstOrDefault(x => x.Label == "Binary Power Switch");
-            _manager.SetPollInterval(1000, true);
+            var sensor = PrintValuesForDevice("Routing Binary Sensor");
+            _manager.SetNodeProductName(sensor.HomeId, sensor.Id, "Garage Door Sensor");
 
-            foreach (var vid in node.ValueIds)
+            foreach (var n in _nodeList)
             {
-                Console.WriteLine("Value type is " + vid.GetType());
-                Console.WriteLine("Value units is " + _manager.GetValueUnits(vid));
-                Console.WriteLine("Value Genre is " + vid.GetGenre());
-                Console.WriteLine("Value index is " + vid.GetIndex());
-                Console.WriteLine("Value instance is " + vid.GetInstance());
-                Console.WriteLine("Value label is " + _manager.GetValueLabel(vid));
-                string s;
-                _manager.GetValueAsString(vid, out s);
-                Console.WriteLine("Value string is " + s);
-                Console.WriteLine("----------------");
+                Console.WriteLine("======================================");
+                Console.WriteLine("Label: " + n.Label);
+                Console.WriteLine("location: " + n.Location);
+                Console.WriteLine("Manufacturer: " + n.ManufacturerName);
+
+                var name = _manager.GetNodeName(sensor.HomeId, n.Id);
+                n.Name = name;
+
+                Console.WriteLine("Name: " + n.Name);
+                Console.WriteLine("Product: " + n.Product);
+                Console.WriteLine("Node Id: " + n.Id);
+                Console.WriteLine("======================================");
             }
 
+            // var node = _nodeList.FirstOrDefault(x => x.Product == "45609 On/Off Relay Switch");
+
+            // _manager.SetPollInterval(1000, true);
+            var node = PrintValuesForDevice("Binary Power Switch");
+
+
+            Console.WriteLine("");
+            Console.WriteLine("");
+            Console.WriteLine("Getting value of basement light switch:");
             ZWValueID v = node.ValueIds.First(x => _manager.GetValueLabel(x) == "Switch");
             bool ret;
             bool b;
             ret = _manager.GetValueAsBool(v, out b);
-            Console.WriteLine("Got bool value of " + b + ", success: " + ret);
+            Console.WriteLine("SWITCH: Got bool value of " + b + ", success: " + ret);
 
-            int i;
-            ret = _manager.GetValueAsInt(v, out i);
-            Console.WriteLine("got in value of " + i + ", success: " + ret);
+            var v2 = sensor.ValueIds.First(x => _manager.GetValueLabel(x) == "Sensor");
+            ret = _manager.GetValueAsBool(v2, out b);
+            Console.WriteLine("SENSOR: Got bool value of " + b + ", success: " + ret);
 
-            string str;
-            ret = _manager.GetValueAsString(v, out str);
-            Console.WriteLine("got string value of " + str + ", success: " + ret);
+            //int i;
+            //ret = _manager.GetValueAsInt(v, out i);
+            //Console.WriteLine("got in value of " + i + ", success: " + ret);
+
+            //string str;
+            //ret = _manager.GetValueAsString(v, out str);
+            //Console.WriteLine("got string value of " + str + ", success: " + ret);
 
             // ret = _manager.SetValue(v, true);
             //Console.WriteLine("Set bool value to false, success: " + ret);
-            
+
 
             Console.WriteLine("Press enter...");
             Console.ReadLine();
@@ -91,14 +105,14 @@ namespace ZWaveFun
 
         public static void NotificationHandler(ZWNotification notification)
         {
-            Console.WriteLine("Notification! " + notification.GetType() + ": NodeID:" + notification.GetNodeId() + ", HomeId:" + notification.GetHomeId());
+            // Console.WriteLine("Notification! " + notification.GetType() + ": NodeID:" + notification.GetNodeId() + ", HomeId:" + notification.GetHomeId());
             var node = FindNode(notification.GetHomeId(), notification.GetNodeId());
 
             switch (notification.GetType())
             {
                 case ZWNotification.Type.AllNodesQueried:
                     {
-                        Console.WriteLine("AllNodesQueried");
+                        Console.WriteLine("***** AllNodesQueried");
                         _manager.WriteConfig(notification.GetHomeId());
                         _mre.Set();
                         break;
@@ -113,22 +127,21 @@ namespace ZWaveFun
                     {
                         Console.WriteLine("Ready:  Awake nodes queried (but not some sleeping nodes).");
                         _manager.WriteConfig(notification.GetHomeId());
+                        _mre.Set();
                         break;
                     }
                 case (ZWNotification.Type.NodeAdded):
                     {
-                        
                         node.Id = notification.GetNodeId();
                         node.HomeId = notification.GetHomeId();
                         //FillInfo(node);
-                        _nodeList.Add(node);
                         break;
                     }
 
                 case (ZWNotification.Type.NodeNaming):
                     {
                         Console.WriteLine("Node naming event!");
-                            node.ManufacturerName = _manager.GetNodeManufacturerName(node.HomeId, node.Id);
+                        node.ManufacturerName = _manager.GetNodeManufacturerName(node.HomeId, node.Id);
                         node.Product = _manager.GetNodeProductName(node.HomeId, node.Id);
                         node.Location = _manager.GetNodeLocation(node.HomeId, node.Id);
                         node.Name = _manager.GetNodeName(node.HomeId, node.Id);
@@ -139,7 +152,9 @@ namespace ZWaveFun
                 case ZWNotification.Type.NodeProtocolInfo:
                     {
                         node.Label = _manager.GetNodeType(node.HomeId, node.Id);
+                        Console.WriteLine("***********************");
                         Console.WriteLine("NodeProtocolInfo: label is " + node.Label);
+                        Console.WriteLine("***********************");
                         break;
                     }
 
@@ -158,7 +173,7 @@ namespace ZWaveFun
                 case ZWNotification.Type.DriverReady:
                     {
                         _homeId = notification.GetHomeId();
-                        Console.WriteLine("Home Id is :" + _homeId);
+                        // Console.WriteLine("Home Id is :" + _homeId);
                         break;
                     }
                 case ZWNotification.Type.NodeQueriesComplete:
@@ -180,9 +195,22 @@ namespace ZWaveFun
 
                 case ZWNotification.Type.ValueChanged:
                     {
+                        Console.WriteLine("");
                         string s;
-                        _manager.GetValueAsString(notification.GetValueID(), out s);
-                        Console.WriteLine(node.Label + " string value is now " + s);
+                        bool b;
+
+                        Console.WriteLine(node.Name + ": " + node.Location);
+                        Console.WriteLine("Notification type is " + notification.GetType());
+                        var valueId = notification.GetValueID();
+                        var valueType = notification.GetValueID().GetType();
+                        _manager.GetValueAsString(valueId, out s);
+                        _manager.GetValueAsBool(valueId, out b);
+                        byte bt;
+                        _manager.GetValueAsByte(valueId, out bt);
+                        Console.WriteLine("Value Type: " + valueType);
+                        Console.WriteLine(System.DateTime.Now +     "** VALUE CHANGED ** <<" + node.Label + ">> <<" + notification.GetValueID().GetId().ToString() + ">> string:" + s + ",bool:" + b + ",byte=" + bt); 
+                        Console.WriteLine("Genre: " + valueId.GetGenre().ToString());
+                        Console.WriteLine("");
                         break;
                     }
 
@@ -202,6 +230,32 @@ namespace ZWaveFun
             {
                 node = new Node { HomeId = homeId, Id = Id };
                 _nodeList.Add(node);
+            }
+            return node;
+        }
+
+        public static Node PrintValuesForDevice(string label)
+        {
+            var node = _nodeList.FirstOrDefault(x => x.Label == label);
+
+            Console.WriteLine("");
+            Console.WriteLine("Value types for " + label);
+            Console.WriteLine("");
+
+            foreach (var vid in node.ValueIds)
+            {
+                
+                Console.WriteLine("Value type is " + vid.GetType());
+                Console.WriteLine("Value units is " + _manager.GetValueUnits(vid));
+                Console.WriteLine("Value Genre is " + vid.GetGenre());
+                Console.WriteLine("Value index is " + vid.GetIndex());
+                Console.WriteLine("Value instance is " + vid.GetInstance());
+                Console.WriteLine("Value label is " + _manager.GetValueLabel(vid));
+                Console.WriteLine("Value genre is " + vid.GetGenre().ToString());
+                string s;
+                _manager.GetValueAsString(vid, out s);
+                Console.WriteLine("Value string is " + s);
+                Console.WriteLine("----------------");
             }
             return node;
         }
