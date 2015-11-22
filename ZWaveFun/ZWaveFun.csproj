@@ -34,8 +34,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="OpenZWaveDotNet, Version=1.0.5699.17983, Culture=neutral, processorArchitecture=x86">
-      <HintPath>..\packages\OpenZWave.1.3.434.1\lib\OpenZWaveDotNet.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\OpenZWaveDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -231,6 +231,7 @@
     <Content Include="config\zwave.me\ZME_064435.xml" />
     <Content Include="config\zwave.me\ZME_WALLC-S.xml" />
     <Content Include="config\zwave.me\ZME_WCD2.xml" />
+    <Content Include="OpenZWaveDotNet.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
